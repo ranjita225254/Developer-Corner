@@ -1,0 +1,333 @@
+<?php get_header(); ?>
+<?php
+$msg = "";
+$data = $_POST;
+$user = array();
+$userMeta = array();
+$fl = 0;
+$errFl = 0;
+$id = get_current_user_id();
+if ($id) {
+    $userData = (array) get_userdata($id)->data;
+    $userMetaData = get_user_meta($id);
+    try {
+        if (!empty($data)) {
+            if ((isset($data['user_pass']) && $data['user_pass']) && ($data['user_pass'] != $data['cnf_password'])) {
+                throw new Exception('Password do not match!');
+            } elseif ((isset($data['user_pass']) && $data['user_pass']) && ($data['user_pass'] == $data['cnf_password'])) {
+                $user['user_pass'] = $data['user_pass'];
+            }
+            foreach ($data as $key => $value) {
+                if ((trim($value) == NULL) && ($key != 'user_pass' && $key != 'cnf_password')) {
+                    $fl = 1;
+                    break;
+                }
+            }
+            if ($fl) {
+                throw new Exception('Empty fields not allowed!');
+            }
+
+            $result = $wpdb->get_results("SELECT * FROM $wpdb->usermeta WHERE meta_key = 'mobileno'");
+            foreach ($result as $mesg) {
+                $mobArr[] = $mesg->meta_value;
+                $idArr[] = $mesg->user_id;
+            }
+            if (in_array($data['mobileno'], $mobArr) && !in_array($id, $idArr)) {
+                throw new Exception('Phone Number already exists!');
+            }
+
+            $user['ID'] = $id;
+            $user['user_email'] = $data['user_email'];
+            $user['display_name'] = $data['firstname'];
+            $user['first_name'] = $data['firstname'];
+            $user['last_name'] = $data['lastname'];
+
+            $userMeta['age'] = $data['age'];
+            $userMeta['mobileno'] = $data['mobileno'];
+            $userMeta['city'] = $data['city'];
+            $userMeta['district'] = $data['district'];
+            $userMeta['state'] = $data['state'];
+            $userMeta['updated_on'] = date('Y-m-d H:i:s');
+
+            if ($userMetaData['role'][0] == 'subscriber') {
+                $userMeta['services'] = $data['services'];
+                $userMeta['service_count'] = 0;
+                $userMeta['role'] = 'subscriber';
+            } else if ($userMetaData['role'][0] == 'contributer') {
+                $userMeta['profession'] = $data['profession'];
+                $userMeta['shopname'] = $data['shopname'];
+                $userMeta['role'] = 'contributer';
+            }
+            $id = wp_update_user($user);
+            foreach ($userMeta as $key => $value) {
+                $user_id = update_user_meta($id, $key, $value);
+            }
+            if ($id) {
+                $msg = "Profile updated.";
+                $errFl = 1;
+            }
+            $userData = (array) get_userdata($id)->data;
+            $userMetaData = get_user_meta($id);
+        }
+    } catch (Exception $ex) {
+        $msg = $ex->getMessage();
+        $errFl = 2;
+    }
+}
+
+if ($errFl == 1) {
+    $class = ' success';
+    $postData = array();
+} else if ($errFl == 2) {
+    $class = ' error';
+} else {
+    $class = '';
+}
+?>
+<div class="msg<?php echo $class; ?>">
+    <span><?php echo isset($msg) ? $msg : ""; ?></span>
+    <span class="close">X</span>
+</div>
+<div class="main-section columns col-sm-6">        
+    <h2 class="page-title">Edit Profile</h2>
+    <form id="editprofile" action="" method="POST" autocomplete="off">
+        <div class="form-wrap">
+            <?php if ($userMetaData['role'][0] == 'subscriber') { ?>
+                <div class="field">
+                    <label>First Name<em>*</em></label>
+                    <div class="input-box"><input type="text" name="firstname" class="required form-control" value="<?php echo isset($userMetaData['first_name'][0]) ? $userMetaData['first_name'][0] : ''; ?>"></div>
+                </div>
+                <div class="field">
+                    <label>Last Name<em>*</em></label>
+                    <div class="input-box"><input type="text" name="lastname" class="required form-control" value="<?php echo isset($userMetaData['last_name'][0]) ? $userMetaData['last_name'][0] : ''; ?>"></div>
+                </div>
+                <div class="field">
+                    <label>Age<em>*</em></label>
+                    <div class="input-box">
+                        <input type="text" name="age" class="required integer form-control" onblur="return validateFieldValue(this)" value="<?php echo isset($userMetaData['age'][0]) ? $userMetaData['age'][0] : ''; ?>">
+                        <div class="validation_new errMsg"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Mobile No<em>*</em></label>
+                    <div class="input-box">
+                        <input type="text" name="mobileno" class="required integer form-control" onblur="return validateFieldValue(this)" value="<?php echo isset($userMetaData['mobileno'][0]) ? $userMetaData['mobileno'][0] : ''; ?>">
+                        <div class="validation_new errMsg"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Email Id<em>*</em></label>
+                    <div class="input-box">
+                        <input type="text" name="user_email" class="form-control" onblur="return validateFieldValue(this)" value="<?php echo isset($userData['user_email']) ? $userData['user_email'] : ''; ?>">
+                        <div class="validation_new errMsg"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>City<em>*</em></label>
+                    <div class="input-box"><input type="text" name="city" class="required form-control" value="<?php echo isset($userMetaData['city'][0]) ? $userMetaData['city'][0] : ''; ?>"></div>
+                </div>
+                <div class="field">
+                    <label>District<em>*</em></label>
+                    <div class="input-box"><input type="text" name="district" class="required form-control" value="<?php echo isset($userMetaData['district'][0]) ? $userMetaData['district'][0] : ''; ?>"></div>
+                </div>
+                <div class="field">
+                    <label>State<em>*</em></label>
+                    <div class="input-box"><input type="text" name="state" class="required form-control" value="<?php echo isset($userMetaData['state'][0]) ? $userMetaData['state'][0] : ''; ?>"></div>
+                </div>
+                <div class="field">
+                    <label>Services Available<em>*</em></label>
+                    <div class="input-box">
+                        <select name="services" class="required">
+                            <option value="59" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 59) ? "selected='selected'" : ''; ?>>Planning map as per your requirement</option>
+                            <option value="61" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 61) ? "selected='selected'" : ''; ?>>Design of your construction</option>
+                            <option value="66" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 66) ? "selected='selected'" : ''; ?>>Front elevation in 3D view</option>
+                            <option value="63" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 63) ? "selected='selected'" : ''; ?>>Interior design service with modular kitchen</option>
+                            <option value="68" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 68) ? "selected='selected'" : ''; ?>>Estimate for bank loan or your own knowledge</option>
+                            <option value="70" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 70) ? "selected='selected'" : ''; ?>>Supply of building material</option>
+                            <option value="72" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 72) ? "selected='selected'" : ''; ?>>All type T & P available at rent</option>
+                            <option value="74" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 74) ? "selected='selected'" : ''; ?>>We supply Labour and Mason, plumbers, electricians, carpenters, and painters</option>
+                            <option value="76" <?php echo (isset($userMetaData['services'][0]) && $userMetaData['services'][0] == 76) ? "selected='selected'" : ''; ?>>We provide you Civil Engineering consultancy</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <div class="input-box">
+                        <input type="password" name="user_pass" class="form-control" onblur="return validateFieldValue(this)">
+                        <div class="validation_new errMsg"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Confirm Password</label>
+                    <div class="input-box"><input type="password" name="cnf_password" class="form-control"></div>
+                </div>
+            </div>
+        <?php } else if ($userMetaData['role'][0] == 'contributer') { ?>
+            <div class="field">
+                <label>First Name<em>*</em></label>
+                <div class="input-box"><input type="text" name="firstname" value="<?php echo isset($userMetaData['first_name'][0]) ? $userMetaData['first_name'][0] : ''; ?>" class="required form-control"></div>
+            </div>
+            <div class="field">
+                <label>Last Name<em>*</em></label>
+                <div class="input-box"><input type="text" name="lastname" value="<?php echo isset($userMetaData['last_name'][0]) ? $userMetaData['last_name'][0] : ''; ?>" class="required form-control"></div>
+            </div>
+            <div class="field">
+                <label>Age<em>*</em></label>
+                <div class="input-box">
+                    <input type="text" name="age" value="<?php echo isset($userMetaData['age'][0]) ? $userMetaData['age'][0] : ''; ?>" class="required integer form-control" onblur="return validateFieldValue(this)">
+                    <div class="validation_new errMsg"></div>
+                </div>
+            </div>
+            <div class="field">
+                <label>Mobile No<em>*</em></label>
+                <div class="input-box">
+                    <input type="text" name="mobileno" value="<?php echo isset($userMetaData['mobileno'][0]) ? $userMetaData['mobileno'][0] : ''; ?>" class="required integer form-control" onblur="return validateFieldValue(this)">
+                    <div class="validation_new errMsg"></div>
+                </div>
+            </div>
+            <div class="field">
+                <label>Email Id<em>*</em></label>
+                <div class="input-box">
+                    <input type="text" name="user_email" class="form-control" value="<?php echo isset($userData['user_email']) ? $userData['user_email'] : ''; ?>" onblur="return validateFieldValue(this)">
+                    <div class="validation_new errMsg"></div>
+                </div>
+            </div>
+            <div class="field">
+                <label>City<em>*</em></label>
+                <div class="input-box"><input type="text" name="city" value="<?php echo isset($userMetaData['city'][0]) ? $userMetaData['city'][0] : ''; ?>" class="required form-control"></div>
+            </div>
+            <div class="field">
+                <label>District<em>*</em></label>
+                <div class="input-box"><input type="text" name="district" value="<?php echo isset($userMetaData['district'][0]) ? $userMetaData['district'][0] : ''; ?>" class="required form-control"></div>
+            </div>
+            <div class="field">
+                <label>State<em>*</em></label>
+                <div class="input-box"><input type="text" name="state" value="<?php echo isset($userMetaData['state'][0]) ? $userMetaData['state'][0] : ''; ?>" class="required form-control"></div>
+            </div>
+            <div class="field">
+                <label>Profession<em>*</em></label>
+                <div class="input-box"><input type="text" name="profession" value="<?php echo isset($userMetaData['profession'][0]) ? $userMetaData['profession'][0] : ''; ?>" class="required form-control"></div>
+            </div>
+            <div class="field">
+                <label>Shop Name<em>*</em></label>
+                <div class="input-box"><input type="text" name="shopname" value="<?php echo isset($userMetaData['shopname'][0]) ? $userMetaData['shopname'][0] : ''; ?>" class="required form-control"></div>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <div class="input-box">
+                    <input type="password" name="user_pass" class="form-control" onblur="return validateFieldValue(this)">
+                    <div class="validation_new errMsg"></div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Confirm Password</label>
+                <div class="input-box"><input type="password" name="cnf_password" class="form-control"></div>
+            </div>
+        <?php } ?>
+        <div class="field">
+            <label>&nbsp;</label>
+            <input type="submit" value="Submit" id="profilesubmit" class="button-summit" disabled="disabled">
+        </div>
+</div>
+</form>
+</div>
+<?php get_footer(); ?>
+
+<script type="text/javascript">
+    (function($) {
+        $(document).ready(function()
+        {
+            $('#editprofile').validateForm({});
+
+            $("[name='firstname']").keypress(function(e) {
+                if (String.fromCharCode(e.which).match(/[0-9!.@#~`$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/)) {
+                    e.preventDefault();
+                }
+            });
+            $("[name='lastname']").keypress(function(e) {
+                if (String.fromCharCode(e.which).match(/[0-9!.@#$~`%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/)) {
+                    e.preventDefault();
+                }
+            });
+            $("[name='mobileno']").keypress(function(e) {
+                if (String.fromCharCode(e.which).match(/[A-Za-z!@#.~`$%^&*()_+\-=\[\]{};':"\\|,.<>\/?\s]/)) {
+                    e.preventDefault();
+                }
+            });
+            $("[name='age']").keypress(function(e) {
+                if (String.fromCharCode(e.which).match(/[A-Za-z!@#$~.`%^&*()_+\-=\[\]{};':"\\|,.<>\/?\s]/)) {
+                    e.preventDefault();
+                }
+            });
+            $("[name='city']").keypress(function(e) {
+                if (String.fromCharCode(e.which).match(/[0-9!@#$~`.%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/)) {
+                    e.preventDefault();
+                }
+            });
+            $("[name='district']").keypress(function(e) {
+                if (String.fromCharCode(e.which).match(/[0-9!@#$~`%^&.*()_+\-=\[\]{};':"\\|,.<>\/?]/)) {
+                    e.preventDefault();
+                }
+            });
+            $("[name='state']").keypress(function(e) {
+                if (String.fromCharCode(e.which).match(/[0-9!@#$~`.%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/)) {
+                    e.preventDefault();
+                }
+            });
+
+            $("#profilesubmit").prop("disabled", "disabled");
+            $("#profilesubmit").prop("disabled", !$("#profilesubmit").prop("disabled"));
+        });
+    })(jQuery);
+    function validateFieldValue(obj) {
+        var attributeName = jQuery(obj).attr('name');
+        var value = jQuery(obj).attr('value');
+        var text = "";
+        var fl = true;
+        if (attributeName == 'user_pass' && value.length > 0) {
+            if (value.length < 8) {
+                fl = false;
+                text = "password which contain atleast 8 characters!";
+            } else {
+                fl = true;
+
+            }
+        }
+        if (attributeName == 'mobileno') {
+            if (value.length == 10 || value == "") {
+                fl = true;
+            } else {
+                fl = false;
+                text = "mobile number without starting from 0!";
+            }
+        }
+        if (attributeName == 'age') {
+            if (value < 150) {
+                fl = true;
+            } else {
+                fl = false;
+                text = "Age!";
+            }
+        }
+        if (attributeName == 'user_email') {
+            var pattern = new RegExp(/^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.([a-zA-Z]){2,4})$/);
+            if (pattern.test(value) || value == "") {
+                fl = true;
+            }
+            else {
+                fl = false;
+                text = "Email!";
+            }
+        }
+        if (fl) {
+            jQuery(obj).siblings('.validation_new').html("");
+            return true;
+        }
+        else {
+            jQuery(obj).val("");
+            jQuery(obj).siblings('.validation_new').html("Enter valid " + text);
+            return false;
+        }
+    }
+</script>
