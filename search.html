@@ -1,0 +1,68 @@
+<html>
+    <head>
+        <style type="text/css">
+            .Exp-serach{position:relative;margin-top:20px;width:0%;min-width:50px;height:50px;float:right;overflow:hidden;-webkit-transition:width 0.3s;-moz-transition:width 0.3s;transition:width 0.3s;-webkit-backface-visibility:hidden;}
+            .ExpInput{background:#fff none repeat scroll 0 0;border:medium none;color:#A0B58D;font-family:inherit;font-size:20px;height:50px;margin:0;outline:medium none;padding:0 2%;position:absolute;right:0;top:0;width:50%;z-index:10;}
+            .ExpIcon,.Expbtn{width:50px;height:50px;display:block;position:absolute;right:0;top:0;padding:0;margin:0;line-height:50px;text-align:center;cursor:pointer;}
+            .ExpIcon{color:#fff;background:#A0B58D;z-index:90;font-size:22px;font-family:'icomoon';speak:none;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;-webkit-font-smoothing:antialiased;}
+            .Exp-serach.Exp-serach-open,.no-js .Exp-serach{width:100%;}
+        </style>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    </head>
+    <body bgcolor='#CC9966'>
+        <div id="Exp-serach" class="Exp-serach">
+            <form>
+                <input class="ExpInput" onkeyup="buttonUp();" placeholder="Search" type="search" value="" name="search" id="search">
+                <input class="Expbtn" type="submit" value="">
+                <span class="ExpIcon"><i class="fa fa-search"></i></span>
+            </form>
+        </div> 
+        <script type="text/javascript">
+            $(document).ready(function () {
+                function buttonUp() {
+                    var valux = $('.ExpInput').val();
+                    valux = $.trim(valux).length;
+                    if (valux !== 0) {
+                        $('.Expbtn').css('z-index', '99');
+                    } else {
+                        $('.ExpInput').val('');
+                        $('.Expbtn').css('z-index', '-999');
+                    }
+                }
+            });
+            $(document).ready(function () {
+                var submitIcon = $('.ExpIcon');
+                var submitInput = $('.ExpInput');
+                var searchBox = $('.Exp-serach');
+                var isOpen = false;
+                $(document).mouseup(function () {
+                    if (isOpen == true) {
+                        submitInput.val('');
+                        $('.Expbtn').css('z-index', '-999');
+                        submitIcon.click();
+                    }
+                });
+
+                submitIcon.mouseup(function () {
+                    return false;
+                });
+
+                searchBox.mouseup(function () {
+                    return false;
+                });
+
+                submitIcon.click(function () {
+                    if (isOpen == false) {
+                        searchBox.addClass('Exp-serach-open');
+                        isOpen = true;
+                    } else {
+                        searchBox.removeClass('Exp-serach-open');
+                        isOpen = false;
+                    }
+                });
+
+            });
+        </script>
+    </body>
+</html>
